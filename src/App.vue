@@ -92,9 +92,33 @@ onMounted(async () => {
   }
 });
 
+// Complete state reset function
+const resetAllState = () => {
+  // Reset all PDF related state
+  if (pdfUrl.value) {
+    URL.revokeObjectURL(pdfUrl.value); // Release memory from old object URL
+  }
+  pdfFile.value = null;
+  pdfUrl.value = '';
+  pdfPages.value = [];
+  currentPage.value = 0;
+  
+  // Reset fields to default with empty values
+  activeFields.value = JSON.parse(JSON.stringify(defaultFields)); // Deep copy to avoid reference issues
+  
+  // Reset extraction state
+  currentExtractionId.value = null;
+  viewingFromHistory.value = false;
+  isProcessing.value = false;
+};
+
 // Handle file upload
 const handleFileUpload = async (file) => {
   if (file && file.type === 'application/pdf') {
+    // Reset all state before setting new file
+    resetAllState();
+    
+    // Set new file data
     pdfFile.value = file;
     pdfUrl.value = URL.createObjectURL(file);
     await loadPdfPreview();
@@ -199,9 +223,12 @@ const saveToHistoryComplete = async () => {
       // Show success dialog
       successDialog.value = true;
       
-      // Reset after a short delay
+      // Reset state immediately
+      resetAllState();
+      
+      // Close the dialog and move to step 1 after delay
       setTimeout(() => {
-        startNew();
+        currentStep.value = 1;
         successDialog.value = false;
       }, 2000);
     }
@@ -318,14 +345,9 @@ const continueExtraction = async (item) => {
 
 // Start a new extraction
 const startNew = () => {
-  // Reset state
-  pdfFile.value = null;
-  pdfUrl.value = '';
-  pdfPages.value = [];
-  currentPage.value = 0;
-  activeFields.value = [...defaultFields];
+  // Reset all state
+  resetAllState();
   currentStep.value = 1;
-  currentExtractionId.value = null;
 };
 </script>
 
@@ -388,7 +410,7 @@ const startNew = () => {
             @save-to-history="saveToHistoryComplete"
             @close-viewer="goToHistoryView"
           />
-        </div>
+    </div>
         
         <!-- History View -->
         <HistoryView 
